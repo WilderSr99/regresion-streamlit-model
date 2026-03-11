@@ -84,3 +84,6 @@ st.plotly_chart(fig_trend, width="stretch")
 if st.sidebar.button("🔄 Resetear valores"):
     st.rerun()
  #streamlit run streamlitpipelinesv2.py
+
+ #esto es una mejora para que el usuario pueda resetear los valores a los predeterminados sin tener que recargar la página manualmente. Al hacer clic en el botón, se ejecuta st.rerun(), lo que reinicia la aplicación y restablece todos los sliders y selectboxes a sus valores iniciales.
+
