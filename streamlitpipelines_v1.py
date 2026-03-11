@@ -8,88 +8,104 @@ from joblib import load
 # CONFIGURACIÓN DE LA APP
 # -----------------------------
 st.set_page_config(
-    page_title="Predicción de Profit - Analytics",
-    page_icon="📈",
-    layout="wide" # Cambiado a wide para que las gráficas luzcan mejor
+    page_title="Predicción de Profit - Entrada Manual",
+    page_icon="💰",
+    layout="wide"
+)
+
+@st.cache_resource
+def load_model():
+    return load("Modelopipeline.joblib")
+
+model = load_model()
+
+st.title("📈 Dashboard de Predicción de Profit")
+st.markdown("Introduce los montos de inversión de forma manual para obtener una predicción exacta.")
+
+# -----------------------------
+# SIDEBAR - ENTRADA MANUAL DE DATOS
+# -----------------------------
+st.sidebar.header("📝 Datos de Inversión")
+
+# Usamos number_input para permitir escritura manual exacta
+rd_spend = st.sidebar.number_input(
+    "Inversión en R&D", 
+    min_value=0.0, 
+    max_value=200000.0, 
+    value=75000.0,
+    step=500.0,
+    help="Ingrese el monto exacto invertido en Investigación y Desarrollo."
+)
+
+administration = st.sidebar.number_input(
+    "Gastos Administrativos", 
+    min_value=0.0, 
+    max_value=250000.0, 
+    value=120000.0,
+    step=500.0
+)
+
+marketing_spend = st.sidebar.number_input(
+    "Inversión en Marketing", 
+    min_value=0.0, 
+    max_value=500000.0, 
+    value=200000.0,
+    step=1000.0
+)
+
+state = st.sidebar.selectbox(
+    "Estado de Operación", 
+    ["New York", "California", "Florida"]
 )
 
 # -----------------------------
-# CARGAR MODELO (CACHE)
-# -----------------------------
-@st.cache_resource
-def load_model():
-    # Asegúrate de que el archivo esté en la misma carpeta
-    return load("Modelopipeline.joblib")
-
-try:
-    model = load_model()
-except Exception as e:
-    st.error(f"Error al cargar el modelo: {e}")
-    st.stop()
-
-# -----------------------------
-# TÍTULO Y DESCRIPCIÓN
-# -----------------------------
-st.title("📈 Dashboard de Predicción de Profit")
-st.markdown("""
-Esta aplicación utiliza un modelo de **Machine Learning (Pipeline)** para estimar el rendimiento económico 
-basado en la inversión en diferentes áreas de la empresa.
-""")
-
-# -----------------------------
-# SIDEBAR - ENTRADA DE DATOS
-# -----------------------------
-st.sidebar.header("🕹️ Panel de Control")
-
-rd_spend = st.sidebar.slider("R&D Spend", 0.0, 170000.0, 75000.0)
-administration = st.sidebar.slider("Administration", 0.0, 190000.0, 120000.0)
-marketing_spend = st.sidebar.slider("Marketing Spend", 0.0, 480000.0, 200000.0)
-state = st.sidebar.selectbox("Estado de Operación", ["New York", "California", "Florida"])
-
-# -----------------------------
-# LÓGICA DE PREDICCIÓN
+# LÓGICA DE NEGOCIO
 # -----------------------------
 input_data = pd.DataFrame({
-    "R&D Spend": [rd_spend],
-    "Administration": [administration],
-    "Marketing Spend": [marketing_spend],
+    "R&D Spend": [float(rd_spend)],
+    "Administration": [float(administration)],
+    "Marketing Spend": [float(marketing_spend)],
     "State": [state]
 })
 
-# Realizar la predicción automáticamente o mediante botón
+# Predicción
 prediction = model.predict(input_data)[0]
 
 # -----------------------------
-# VISUALIZACIÓN DE RESULTADOS (LAYOUT)
+# DISEÑO DE RESULTADOS
 # -----------------------------
-col1, col2 = st.columns([1, 2])
+col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("Métricas de Entrada")
-    st.dataframe(input_data.T.rename(columns={0: "Valor"}))
+    st.subheader("📌 Resumen de Entradas")
+    # Mostramos los datos de forma limpia
+    st.table(input_data.T.rename(columns={0: "Monto ($)"}))
     
-    st.metric(label="💰 Profit Estimado", value=f"${prediction:,.2f}")
+    st.metric(
+        label="💰 Profit Estimado", 
+        value=f"${prediction:,.2f}",
+        delta=f"{((prediction/rd_spend)-1)*100:.1f}% ROI vs R&D" if rd_spend > 0 else None
+    )
 
 with col2:
-    st.subheader("Análisis de Composición de Inversión")
-    # Gráfico de pastel interactivo con Plotly
+    st.subheader("📊 Distribución del Presupuesto")
     fig_pie = px.pie(
         names=["R&D", "Admin", "Marketing"],
         values=[rd_spend, administration, marketing_spend],
         hole=0.4,
-        color_discrete_sequence=px.colors.sequential.RdBu,
-        title="Distribución del Gasto"
+        color_discrete_sequence=px.colors.qualitative.Pastel
     )
-    st.plotly_chart(fig_pie, use_container_width=True)
+    # Sintaxis 2026: width="stretch"
+    st.plotly_chart(fig_pie, width="stretch")
 
 # -----------------------------
-# SECCIÓN DE GRÁFICAS INTERACTIVAS
+# ANÁLISIS DE SENSIBILIDAD
 # -----------------------------
 st.markdown("---")
-st.subheader("📊 Simulación de Escenarios")
+st.subheader("📉 Análisis Proyectado")
 
-# Crear datos sintéticos para ver la tendencia de R&D vs Profit
-rd_range = np.linspace(0, 170000, 50)
+# Generamos una curva basada en tu entrada manual de R&D
+rd_range = np.linspace(0, rd_spend * 1.5, 50)
 temp_df = pd.DataFrame({
     "R&D Spend": rd_range,
     "Administration": [administration] * 50,
@@ -101,25 +117,21 @@ temp_df["Predicted Profit"] = model.predict(temp_df)
 fig_trend = px.line(
     temp_df, 
     x="R&D Spend", 
-    y="Predicted Profit",
-    title="Impacto del R&D en el Profit (Manteniendo otros valores fijos)",
-    labels={"Predicted Profit": "Profit ($)", "R&D Spend": "Inversión en I+D ($)"},
-    template="plotly_dark"
+    y="Predicted Profit", 
+    title="¿Qué pasaría si varías la inversión en R&D?",
+    labels={"Predicted Profit": "Profit Esperado ($)", "R&D Spend": "Inversión R&D ($)"}
 )
-# Añadir un punto que represente la predicción actual
-fig_trend.add_scatter(x=[rd_spend], y=[prediction], mode='markers', name='Punto Actual', marker=dict(size=12, color='yellow'))
+fig_trend.add_scatter(x=[rd_spend], y=[prediction], mode='markers', name='Tu Valor Actual', marker=dict(size=15, color='red'))
 
-st.plotly_chart(fig_trend, use_container_width=True)
+st.plotly_chart(fig_trend, width="stretch")
 
 # -----------------------------
-# BOTÓN RESET (CORREGIDO)
+# BOTÓN DE REINICIO
 # -----------------------------
-if st.sidebar.button("🔄 Resetear valores"):
+if st.sidebar.button("🔄 Limpiar Formulario"):
     st.rerun()
 
-# -----------------------------
-# FOOTER
-# -----------------------------
 st.markdown("---")
-st.caption(f"Entorno: VS Code | Localhost:8501 | ML Engine: Scikit-Learn Pipeline")
-st.caption("Desarrollado por: [WilderSr99] - Curso ENEI 2026: ML en Producción Web")
+st.caption("Enei 2026 - Herramienta de Soporte a Decisiones Financieras")
+
+#streamlit run streamlitpipelines_v1.py

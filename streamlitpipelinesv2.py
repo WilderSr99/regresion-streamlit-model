@@ -83,4 +83,4 @@ st.plotly_chart(fig_trend, width="stretch")
 
 if st.sidebar.button("🔄 Resetear valores"):
     st.rerun()
- #streamlit run streamlitpipelines.py
+ #streamlit run streamlitpipelinesv2.py
