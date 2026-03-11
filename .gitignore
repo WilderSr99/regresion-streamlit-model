@@ -1,0 +1,70 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+.venv/
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints
+
+# =========================
+# Archivos de sistema
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Modelos entrenados
+# =========================
+*.h5
+*.pt
+*.pth
+#*.joblib
+*.pkl
+*.sav
+*.pdf
+
+# =========================
+# Datos grandes
+# =========================
+data/
+datasets/
+*.csv
+*.xlsx
+*.parquet
+*.json
+*.ipynb
+
+
+# =========================
+# Resultados
+# =========================
+outputs/
+results/
+predictions/
+
+# =========================
+# Configuración IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Archivos temporales
+# =========================
+*.tmp
+*.temp
